@@ -16,7 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from consumption.views import get_data
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('data/<int:consumer_id>', get_data, name="get_consumer_data"),
 ]
