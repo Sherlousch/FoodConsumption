@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block css %}
+    {{ block.super }}
+{% endblock %}
+
+{% block body %}
+    <div>
+        <label for="region">Choose the region you want to visualize</label>
+        <select class="region" id="region">
+            {% for consumer in consumers %}
+                <option value = {{ consumer.id }}> {{ consumer.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="graphs">
+        <div id="consumption-chart" class="chart sankey" style="width: 600px; height: 600px"></div>
+        <div>
+            <div id="water-chart" class="chart" style="width: 600px; height: 200px;"></div>
+            <div id="land-chart" class="chart" style="width: 600px; height: 200px;"></div>
+            <div id="co2-chart" class="chart" style="width: 600px; height: 200px;"></div>
+        </div>
+    </div>
+{% endblock body %}
+
+{% block script %}
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-core.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-sankey.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-cartesian.min.js"></script>
+    <script>
+        anychart.onDocumentReady(function(){
+            var consumptionChart = anychart.sankey();
+            consumptionChart.data({{ data.consumption.data|safe }});
+            consumptionChart.title("{{data.consumption.title}}");
+            consumptionChart.nodeWidth("50%");
+            consumptionChart.nodePadding(10); // vertical node padding
+            consumptionChart.container("consumption-chart");
+            consumptionChart.draw();
+            
+            waterChart = anychart.bar();
+            waterChart.yScale().stackMode("value");
+            const water_data = {{data.water.data|safe}};
+            water_data.forEach(function(water_data) {
+                console.log(water_data.data)
+                var series = waterChart.bar(water_data.data);
+                series.id(water_data.label);
+                series.name(water_data.label);
+            });
+            waterChart.container("water-chart");
+            waterChart.draw();
+
+            landChart = anychart.bar();
+            landChart.yScale().stackMode("value");
+            const land_data = {{data.land.data|safe}};
+            land_data.forEach(function(land_data) {
+                console.log(land_data.data)
+                var series = landChart.bar(land_data.data);
+                series.id(land_data.label);
+                series.name(land_data.label);
+            });
+            landChart.container("land-chart");
+            landChart.draw();
+
+            co2Chart = anychart.bar();
+            co2Chart.yScale().stackMode("value");
+            const co2_data = {{data.co2.data|safe}};
+            co2_data.forEach(function(co2_data) {
+                console.log(co2_data.data)
+                var series = co2Chart.bar(co2_data.data);
+                series.id(co2_data.label);
+                series.name(co2_data.label);
+            });
+            co2Chart.container("co2-chart");
+            co2Chart.draw();
+
+        });
+    </script>
+{% endblock %}

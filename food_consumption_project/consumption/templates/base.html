@@ -1,0 +1,24 @@
+<!doctype html>
+
+{% load static %}
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+
+        <title>{{ meta.title }}</title>
+        <meta name="description" content="{{ meta.description }}">
+
+        {% block css %}
+        {% endblock %}
+
+        {% block script %}
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block body %}
+        {% endblock %}
+    </body>
+
+</html>
