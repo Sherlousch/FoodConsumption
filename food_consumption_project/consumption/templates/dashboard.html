@@ -6,8 +6,8 @@
 
 {% block body %}
     <div>
-        <label for="region">Choose the region you want to visualize</label>
-        <select class="region" id="region">
+        <label for="select-region">Choose the region you want to visualize</label>
+        <select class="region" id="select-region">
             {% for consumer in consumers %}
                 <option value = {{ consumer.id }}> {{ consumer.name }}</option>
             {% endfor %}
@@ -42,7 +42,6 @@
             waterChart.yScale().stackMode("value");
             const water_data = {{data.water.data|safe}};
             water_data.forEach(function(water_data) {
-                console.log(water_data.data)
                 var series = waterChart.bar(water_data.data);
                 series.id(water_data.label);
                 series.name(water_data.label);
@@ -54,7 +53,6 @@
             landChart.yScale().stackMode("value");
             const land_data = {{data.land.data|safe}};
             land_data.forEach(function(land_data) {
-                console.log(land_data.data)
                 var series = landChart.bar(land_data.data);
                 series.id(land_data.label);
                 series.name(land_data.label);
@@ -66,7 +64,6 @@
             co2Chart.yScale().stackMode("value");
             const co2_data = {{data.co2.data|safe}};
             co2_data.forEach(function(co2_data) {
-                console.log(co2_data.data)
                 var series = co2Chart.bar(co2_data.data);
                 series.id(co2_data.label);
                 series.name(co2_data.label);
@@ -74,6 +71,25 @@
             co2Chart.container("co2-chart");
             co2Chart.draw();
 
+            function updateBarChartData(chart, chart_data) {
+                chart_data.forEach(function(data) {
+                    var series = chart.getSeries(data.label)
+                    series.data(data.data)
+                })
+            }
+
+            document.getElementById('select-region').addEventListener('change', function () {
+                var consumer_id = this.value;
+                fetch(`/data/${consumer_id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateBarChartData(waterChart, data.water.data);
+                        updateBarChartData(landChart, data.land.data);
+                        updateBarChartData(co2Chart, data.co2.data);
+                        consumptionChart.data(data.consumption.data);
+                        consumptionChart.title("{{data.consumption.title}}");
+                    });
+            });
         });
     </script>
 {% endblock %}
