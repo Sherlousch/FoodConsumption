@@ -1,4 +1,5 @@
 from django.db import models
+from colorfield.fields import ColorField
 
 class FoodType(models.Model):
     name = models.CharField("Name", max_length=240)
@@ -10,6 +11,7 @@ class FoodType(models.Model):
         FISH = "FISH", "Fish"
         VEGGIE = "VEGGIE", "Veggie"
         VEGAN = "VEGAN", "Vegan"
+    color = ColorField(format="hexa")
 
     def __str__(self) -> str:
         return self.name

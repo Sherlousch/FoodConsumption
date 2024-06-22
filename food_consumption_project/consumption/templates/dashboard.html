@@ -30,46 +30,40 @@
     <script src="https://cdn.anychart.com/releases/v8/js/anychart-cartesian.min.js"></script>
     <script>
         anychart.onDocumentReady(function(){
-            var consumptionChart = anychart.sankey();
-            consumptionChart.data({{ data.consumption.data|safe }});
-            consumptionChart.title("{{data.consumption.title}}");
-            consumptionChart.nodeWidth("50%");
-            consumptionChart.nodePadding(10); // vertical node padding
-            consumptionChart.container("consumption-chart");
-            consumptionChart.draw();
-            
-            waterChart = anychart.bar();
-            waterChart.yScale().stackMode("value");
-            const water_data = {{data.water.data|safe}};
-            water_data.forEach(function(water_data) {
-                var series = waterChart.bar(water_data.data);
-                series.id(water_data.label);
-                series.name(water_data.label);
-            });
-            waterChart.container("water-chart");
-            waterChart.draw();
 
-            landChart = anychart.bar();
-            landChart.yScale().stackMode("value");
-            const land_data = {{data.land.data|safe}};
-            land_data.forEach(function(land_data) {
-                var series = landChart.bar(land_data.data);
-                series.id(land_data.label);
-                series.name(land_data.label);
-            });
-            landChart.container("land-chart");
-            landChart.draw();
-
-            co2Chart = anychart.bar();
-            co2Chart.yScale().stackMode("value");
-            const co2_data = {{data.co2.data|safe}};
-            co2_data.forEach(function(co2_data) {
-                var series = co2Chart.bar(co2_data.data);
-                series.id(co2_data.label);
-                series.name(co2_data.label);
-            });
-            co2Chart.container("co2-chart");
-            co2Chart.draw();
+            function createSankeyChart(container, data, colors) {
+                var chart = anychart.sankey(data.data);
+                chart.nodeWidth("50%");
+                chart.nodePadding(10); // vertical node padding
+                chart.node().normal().fill(function() {
+                    return colors[this.name] || this.sourceColor;
+                });
+                chart.node().hovered().fill(anychart.color.lighten(function() {
+                    return colors[this.name] || this.sourceColor}, 0.8));
+                chart.flow().hovered().fill(function() {
+                    return colors[this.from] || this.sourceColor;
+                });
+                chart.container(container);
+                chart.title(data.title);
+                chart.draw();
+                return chart;
+            }
+        
+            function createBarChart(container, data, colors) {
+                var chart = anychart.bar();
+                chart.yScale().stackMode("value");
+                data.data.forEach(function(data) {
+                    var series = chart.bar(data.data);
+                    series.id(data.label);
+                    series.name(data.label);
+                    series.fill(colors[data.label]);
+                    series.stroke(colors[data.label]);
+                });
+                chart.container(container);
+                chart.title(data.title);
+                chart.draw();
+                return chart;
+            }
 
             function updateBarChartData(chart, chart_data) {
                 chart_data.forEach(function(data) {
@@ -77,6 +71,12 @@
                     series.data(data.data)
                 })
             }
+            
+            colors = {{data.colors|safe}};
+            consumptionChart = createSankeyChart(container = "consumption-chart", data = {{data.consumption|safe}}, colors = colors);
+            waterChart = createBarChart(container = "water-chart", data = {{data.water|safe}}, colors = colors);
+            landChart = createBarChart(container = "land-chart", data = {{data.land|safe}}, colors = colors);
+            co2Chart = createBarChart(container = "co2-chart", data = {{data.co2|safe}}, colors = colors);
 
             document.getElementById('select-region').addEventListener('change', function () {
                 var consumer_id = this.value;

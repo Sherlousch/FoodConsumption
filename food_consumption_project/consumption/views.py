@@ -38,6 +38,10 @@ def get_data(consumer_id):
         "title": "CO2 emissions (kg)",
         "data": []
         }
+    colors = {
+        "Food": "#CCA290",
+        "Feed": "#BDA79E"
+    }
     for consumption in consumption_list:
         consumption_data["data"].append({"from": consumption.food_type.name, "to": "Food", "weight": consumption.food_consumption})
         consumption_data["data"].append({"from": consumption.food_type.name, "to": "Feed", "weight": consumption.feed_consumption})
@@ -62,11 +66,13 @@ def get_data(consumer_id):
                 ["Feed", consumption.food_type.gas_emission_kg_co2 * consumption.feed_consumption]
                 ]
             })
+        colors[consumption.food_type.name] = consumption.food_type.color[:7] # Remove alpha factor of colors
     data = {
         "consumption": consumption_data,
         "water": water_data,
         "land": land_data,
-        "co2": co2_data
+        "co2": co2_data,
+        "colors": colors
     }
     return data
 
