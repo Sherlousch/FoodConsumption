@@ -1,38 +1,48 @@
 {% extends 'base.html' %}
 
+{% load static %}
+
 {% block css %}
-    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock %}
 
 {% block body %}
-    <div>
-        <label for="consumer-select">Choose the region you want to visualize</label>
-        <select class="region" id="consumer-select">
-            {% for consumer in consumers %}
-                <option value = {{ consumer.id }}> {{ consumer.name }}</option>
-            {% endfor %}
-            <option value=0>Choose</option>
-        </select>
-    </div>
+    <div class="main-container">
+        <h1 class="main-title">Food consumption environmental impact</h1>
+        <div class="card">
+            <label for="consumer-select">Choose the data you want to visualize</label>
+            <select class="button main-button" id="consumer-select">
+                {% for consumer in consumers %}
+                    <option value = {{ consumer.id }}> {{ consumer.name }}</option>
+                {% endfor %}
+                <option value=0>Customize</option>
+            </select>
 
-    <div class="consumption-select" id="consumption-select" style="display: none;">
-        {% for label, consumption in data.items %}
-        <div>
-            <label for="{{label}}">{{label}}</label>
-            <input type="number" id="{{label}}-select" name="{{label}}" step="0.1" min="0" value={{ consumption.food }}>
+            <div class="grid" id="consumption-select" style="display: none;">
+                {% for label, consumption in data.items %}
+                <div class="sub-card">
+                    <label for="{{label}}-select">{{label}}</label>
+                    <input class="button" type="number" id="{{label}}-select" step="1" min="0" value={{ consumption.food }}>
+                </div>
+                {% endfor %}
+                <div class="sub-card">
+                    <button class="button main-button" id="apply-button">Apply changes</button>
+                </div>
+            </div>
         </div>
-        {% endfor %}
-        <button id="apply">Apply changes</button>
-    </div>
 
-    <div id="graphs">
-        <div id="sankey-chart" class="chart sankey" style="width: 600px; height: 600px"></div>
-        <div>
-            <div id="water-chart" class="chart" style="width: 600px; height: 200px;"></div>
-            <div id="land-chart" class="chart" style="width: 600px; height: 200px;"></div>
-            <div id="gas-chart" class="chart" style="width: 600px; height: 200px;"></div>
+        <div class="card">
+            <div class="sankey-chart">
+                <div id="sankey-chart" class="chart"></div>
+            </div>
+            <div class=" bar-chart">
+                <div id="water-chart" class="chart"></div>
+                <div id="land-chart" class="chart"></div>
+                <div id="gas-chart" class="chart"></div>
+            </div>
         </div>
     </div>
+    
 {% endblock body %}
 
 {% block script %}
@@ -40,8 +50,8 @@
     <script src="https://cdn.anychart.com/releases/v8/js/anychart-sankey.min.js"></script>
     <script src="https://cdn.anychart.com/releases/v8/js/anychart-cartesian.min.js"></script>
     <script>
-        anychart.onDocumentReady(function(){
-            const applyButton = document.getElementById("apply");
+        anychart.onDocumentReady(function() {
+            const applyButton = document.getElementById("apply-button");
             const dataSelect = document.getElementById("consumption-select");
             const consumerSelect = document.getElementById("consumer-select");
             const foodTypes = {{food_types|safe}};
@@ -129,8 +139,6 @@
                 updateSankeyData(consumptionChart, name="sankey");
             }
 
-
-            
             consumptionChart = createSankeyChart(name = "sankey");
             waterChart = createBarChart(name = "water");
             landChart = createBarChart(name = "land");
@@ -145,7 +153,7 @@
                 var consumer_id = this.value;
                 let dataPromise;
                 if (consumer_id == 0) {
-                    dataSelect.style.display = 'block';
+                    dataSelect.style.display = 'flex';
                     applyUserPreferences();
                     dataPromise = Promise.resolve();
                 } else {
