@@ -6,20 +6,31 @@
 
 {% block body %}
     <div>
-        <label for="select-region">Choose the region you want to visualize</label>
-        <select class="region" id="select-region">
+        <label for="consumer-select">Choose the region you want to visualize</label>
+        <select class="region" id="consumer-select">
             {% for consumer in consumers %}
                 <option value = {{ consumer.id }}> {{ consumer.name }}</option>
             {% endfor %}
+            <option value=0>Choose</option>
         </select>
     </div>
 
+    <div class="consumption-select" id="consumption-select" style="display: none;">
+        {% for label, consumption in data.items %}
+        <div>
+            <label for="{{label}}">{{label}}</label>
+            <input type="number" id="{{label}}-select" name="{{label}}" step="0.1" min="0" value={{ consumption.food }}>
+        </div>
+        {% endfor %}
+        <button id="apply">Apply changes</button>
+    </div>
+
     <div id="graphs">
-        <div id="consumption-chart" class="chart sankey" style="width: 600px; height: 600px"></div>
+        <div id="sankey-chart" class="chart sankey" style="width: 600px; height: 600px"></div>
         <div>
             <div id="water-chart" class="chart" style="width: 600px; height: 200px;"></div>
             <div id="land-chart" class="chart" style="width: 600px; height: 200px;"></div>
-            <div id="co2-chart" class="chart" style="width: 600px; height: 200px;"></div>
+            <div id="gas-chart" class="chart" style="width: 600px; height: 200px;"></div>
         </div>
     </div>
 {% endblock body %}
@@ -30,65 +41,122 @@
     <script src="https://cdn.anychart.com/releases/v8/js/anychart-cartesian.min.js"></script>
     <script>
         anychart.onDocumentReady(function(){
+            const applyButton = document.getElementById("apply");
+            const dataSelect = document.getElementById("consumption-select");
+            const consumerSelect = document.getElementById("consumer-select");
+            const foodTypes = {{food_types|safe}};
+            const extraColors = {{extra_colors|safe}};
+            const chartTitles = {{titles|safe}};
+            var chartData = {{data|safe}};
 
-            function createSankeyChart(container, data, colors) {
-                var chart = anychart.sankey(data.data);
+            function getColor(name) {
+                if (name == "Food" || name == "Feed") {
+                        return extraColors[name];
+                    }
+                    return foodTypes[name].color;
+            }
+
+            function createSankeyChart(name) {
+                var sankey_data = []
+                Object.keys(foodTypes).forEach(function(label) {
+                    sankey_data.push({"from": label, "to": "Food", "weight": chartData[label].food});
+                    sankey_data.push({"from": label, "to": "Feed", "weight": chartData[label].feed});
+                })
+                var chart = anychart.sankey(sankey_data);
                 chart.nodeWidth("50%");
                 chart.nodePadding(10); // vertical node padding
-                chart.node().normal().fill(function() {
-                    return colors[this.name] || this.sourceColor;
-                });
-                chart.node().hovered().fill(anychart.color.lighten(function() {
-                    return colors[this.name] || this.sourceColor}, 0.8));
-                chart.flow().hovered().fill(function() {
-                    return colors[this.from] || this.sourceColor;
-                });
-                chart.container(container);
-                chart.title(data.title);
+                chart.node().normal().fill(function() { return getColor(this.name) || this.sourceColor; });
+                chart.node().hovered().fill(function() { return getColor(this.name) || this.sourceColor; });
+                chart.flow().hovered().fill(function() { return getColor(this.from) || this.sourceColor; });
+                chart.container(name + "-chart");
+                chart.title(chartTitles[name]);
                 chart.draw();
                 return chart;
+            }
+
+            function updateSankeyData(chart, name) {
+                var sankey_data = []
+                Object.keys(foodTypes).forEach(function(label) {
+                    sankey_data.push({"from": label, "to": "Food", "weight": chartData[label].food});
+                    sankey_data.push({"from": label, "to": "Feed", "weight": chartData[label].feed});
+                });
+                chart.data(sankey_data);
             }
         
-            function createBarChart(container, data, colors) {
+            function createBarChart(name) {
                 var chart = anychart.bar();
                 chart.yScale().stackMode("value");
-                data.data.forEach(function(data) {
-                    var series = chart.bar(data.data);
-                    series.id(data.label);
-                    series.name(data.label);
-                    series.fill(colors[data.label]);
-                    series.stroke(colors[data.label]);
+                Object.keys(foodTypes).forEach(function(label) {
+                    var series_data = [
+                        ["Food", chartData[label].food * foodTypes[label][name]],
+                        ["Feed", chartData[label].feed * foodTypes[label][name]]
+                    ];
+                    var series = chart.bar(series_data);
+                    series.id(label);
+                    series.name(label);
+                    series.fill(foodTypes[label].color);
+                    series.stroke(foodTypes[label].color);
                 });
-                chart.container(container);
-                chart.title(data.title);
+                chart.container(name + "-chart");
+                chart.title(chartTitles[name]);
                 chart.draw();
                 return chart;
             }
 
-            function updateBarChartData(chart, chart_data) {
-                chart_data.forEach(function(data) {
-                    var series = chart.getSeries(data.label)
-                    series.data(data.data)
+            function updateBarChartData(chart, name) {
+                Object.keys(foodTypes).forEach(function(label) {
+                    var series = chart.getSeries(label)
+                    series.data([
+                        ["Food", chartData[label].food * foodTypes[label][name]],
+                        ["Feed", chartData[label].feed * foodTypes[label][name]]
+                    ])
                 })
             }
-            
-            colors = {{data.colors|safe}};
-            consumptionChart = createSankeyChart(container = "consumption-chart", data = {{data.consumption|safe}}, colors = colors);
-            waterChart = createBarChart(container = "water-chart", data = {{data.water|safe}}, colors = colors);
-            landChart = createBarChart(container = "land-chart", data = {{data.land|safe}}, colors = colors);
-            co2Chart = createBarChart(container = "co2-chart", data = {{data.co2|safe}}, colors = colors);
 
-            document.getElementById('select-region').addEventListener('change', function () {
-                var consumer_id = this.value;
-                fetch(`/data/${consumer_id}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        updateBarChartData(waterChart, data.water.data);
-                        updateBarChartData(landChart, data.land.data);
-                        updateBarChartData(co2Chart, data.co2.data);
-                        consumptionChart.data(data.consumption.data);
-                        consumptionChart.title("{{data.consumption.title}}");
+            function applyUserPreferences() {
+                Object.keys(foodTypes).forEach(function(label) {  
+                    chartData[label] = {
+                            "food": document.getElementById(label + "-select").value,
+                            "feed": chartData[label].feed
+                        };
                     });
+            }
+
+            function updateCharts() {
+                updateBarChartData(waterChart, name="water");
+                updateBarChartData(landChart, name="land");
+                updateBarChartData(gasChart, name="gas");
+                updateSankeyData(consumptionChart, name="sankey");
+            }
+
+
+            
+            consumptionChart = createSankeyChart(name = "sankey");
+            waterChart = createBarChart(name = "water");
+            landChart = createBarChart(name = "land");
+            gasChart = createBarChart(name = "gas");
+
+            applyButton.addEventListener('click', () => {
+                applyUserPreferences();
+                updateCharts();
+            });
+
+            consumerSelect.addEventListener('change', function () {
+                var consumer_id = this.value;
+                let dataPromise;
+                if (consumer_id == 0) {
+                    dataSelect.style.display = 'block';
+                    applyUserPreferences();
+                    dataPromise = Promise.resolve();
+                } else {
+                    dataSelect.style.display = 'none';
+                    dataPromise = fetch(`/data/${consumer_id}`)
+                        .then(response => response.json())
+                        .then(data => { 
+                            chartData = data;
+                        });
+                }
+                dataPromise.then(() => { updateCharts() });
             });
         });
     </script>

@@ -2,6 +2,7 @@
 
 Project realized for Aalto University course CS-E4450: Explorative Information Visualization
 
+Install requirements: `$ pip install -r requirements.txt`
 Start the server: `$ python manage.py runserver`
 
 ## Presentation of the project
